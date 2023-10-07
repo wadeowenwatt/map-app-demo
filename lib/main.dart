@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:geocoding/geocoding.dart';
@@ -99,7 +101,7 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  // Method for retrieving the current address
+  // Method for retrieving the current address for showing in text field
   Future<void> _getCurrentAddress() async {
     try {
       List<Placemark> p = await placemarkFromCoordinates(
@@ -118,97 +120,72 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  Future<List<Placemark>> _placeMarkFromAddress(String address) async {
-    List<Location> location = await locationFromAddress(_startAddress);
-    if (location.isEmpty) {
-      return [];
-    }
-    Location firstStartLocation = location.first;
-    List<Placemark> placeMark = await placemarkFromCoordinates(
-        firstStartLocation.latitude, firstStartLocation.longitude);
-    return placeMark;
-  }
-
   // Method for calculating the distance between two places
   Future<bool> _calculateDistance() async {
     try {
-      // Retrieving placemarks from addresses
-      List<Placemark> startPlaceMark =
-          await _placeMarkFromAddress(_startAddress);
-      List<Placemark> destinationPlaceMark =
-          await _placeMarkFromAddress(_destinationAddress);
-
-      if (startPlaceMark.isNotEmpty && destinationPlaceMark.isNotEmpty) {
-        // Use the retrieved coordinates of the current position,
-        // instead of the address if the start position is user's
-        // current position, as it results in better accuracy.
-        Position startCoordinates = _startAddress == _currentAddress
-            ? Position(
-                latitude: _currentPosition?.latitude ?? 0,
-                longitude: _currentPosition?.longitude ?? 0,
-                timestamp: null,
-                accuracy: 0.0,
-                altitude: 0.0,
-                altitudeAccuracy: 0.0,
-                heading: 0.0,
-                headingAccuracy: 0.0,
-                speed: 0.0,
-                speedAccuracy: 0.0,
-              )
-            : startPlaceMark[0].position;
-        Position destinationCoordinates = destinationPlaceMark[0].position;
-
+      if (_startAddress.isNotEmpty) {
+        List<Location> startLocation =
+            await locationFromAddress(_currentAddress!);
+        // List<Location> destinationLocation =
+        //     await locationFromAddress(_destinationAddress);
         // Start Location Marker
         Marker startMarker = Marker(
-          markerId: MarkerId('$startCoordinates'),
+          markerId: MarkerId('1'),
           position: LatLng(
-            startCoordinates.latitude,
-            startCoordinates.longitude,
+            startLocation.first.latitude,
+            startLocation.first.longitude,
           ),
           infoWindow: InfoWindow(
             title: 'Start',
             snippet: _startAddress,
           ),
-          icon: BitmapDescriptor.defaultMarker,
         );
 
         // Destination Location Marker
         Marker destinationMarker = Marker(
-          markerId: MarkerId('$destinationCoordinates'),
+          markerId: MarkerId('2'),
           position: LatLng(
-            destinationCoordinates.latitude,
-            destinationCoordinates.longitude,
+            // destinationLocation.first.latitude,
+            // destinationLocation.first.longitude,
+            21.028511,
+            105.804817,
           ),
           infoWindow: InfoWindow(
             title: 'Destination',
             snippet: _destinationAddress,
           ),
-          icon: BitmapDescriptor.defaultMarker,
         );
 
-        // Adding the markers to the list
-        markers.add(startMarker);
-        markers.add(destinationMarker);
+        setState(() {
+          // Adding the markers to the list
+          markers.add(startMarker);
+          markers.add(destinationMarker);
+        });
 
-        print('START COORDINATES: $startCoordinates');
-        print('DESTINATION COORDINATES: $destinationCoordinates');
-
-        Position _northeastCoordinates;
-        Position _southwestCoordinates;
+        Location _northeastCoordinates;
+        Location _southwestCoordinates;
 
         // Calculating to check that
         // southwest coordinate <= northeast coordinate
-        if (startCoordinates.latitude <= destinationCoordinates.latitude) {
-          _southwestCoordinates = startCoordinates;
-          _northeastCoordinates = destinationCoordinates;
+        if (startLocation.first.latitude <= 21.028511) {
+          _southwestCoordinates = startLocation.first;
+          _northeastCoordinates = Location(
+            latitude: 21.028511,
+            longitude: 105.804817,
+            timestamp: startLocation.first.timestamp,
+          );
         } else {
-          _southwestCoordinates = destinationCoordinates;
-          _northeastCoordinates = startCoordinates;
+          _southwestCoordinates = Location(
+            latitude: 21.028511,
+            longitude: 105.804817,
+            timestamp: startLocation.first.timestamp,
+          );
+          _northeastCoordinates = startLocation.first;
         }
 
         // Accomodate the two locations within the
         // camera view of the map
-        mapController.animateCamera(
+        mapController?.animateCamera(
           CameraUpdate.newLatLngBounds(
             LatLngBounds(
               northeast: LatLng(
@@ -223,17 +200,23 @@ class _MyHomePageState extends State<MyHomePage> {
             100.0,
           ),
         );
-
         // Calculating the distance between the start and the end positions
         // with a straight path, without considering any route
-        // double distanceInMeters = await Geolocator().bearingBetween(
-        //   startCoordinates.latitude,
-        //   startCoordinates.longitude,
-        //   destinationCoordinates.latitude,
-        //   destinationCoordinates.longitude,
-        // );
+        double distanceInMeters = Geolocator.bearingBetween(
+          startLocation.first.latitude,
+          startLocation.first.longitude,
+          21.028511,
+          105.804817,
+        );
 
-        await _createPolylines(startCoordinates, destinationCoordinates);
+        await _createPolylines(
+          startLocation.first,
+          Location(
+            latitude: 21.028511,
+            longitude: 105.804817,
+            timestamp: startLocation.first.timestamp,
+          ),
+        );
 
         double totalDistance = 0.0;
 
@@ -252,9 +235,9 @@ class _MyHomePageState extends State<MyHomePage> {
           _placeDistance = totalDistance.toStringAsFixed(2);
           print('DISTANCE: $_placeDistance km');
         });
-
-        return true;
       }
+
+      return true;
     } catch (e) {
       print(e);
     }
@@ -263,40 +246,40 @@ class _MyHomePageState extends State<MyHomePage> {
 
   // Formula for calculating distance between two coordinates
   // https://stackoverflow.com/a/54138876/11910277
-  // double _coordinateDistance(lat1, lon1, lat2, lon2) {
-  //   var p = 0.017453292519943295;
-  //   var c = cos;
-  //   var a = 0.5 -
-  //       c((lat2 - lat1) * p) / 2 +
-  //       c(lat1 * p) * c(lat2 * p) * (1 - c((lon2 - lon1) * p)) / 2;
-  //   return 12742 * asin(sqrt(a));
-  // }
+  double _coordinateDistance(lat1, lon1, lat2, lon2) {
+    var p = 0.017453292519943295;
+    var c = cos;
+    var a = 0.5 -
+        c((lat2 - lat1) * p) / 2 +
+        c(lat1 * p) * c(lat2 * p) * (1 - c((lon2 - lon1) * p)) / 2;
+    return 12742 * asin(sqrt(a));
+  }
 
   // Create the polylines for showing the route between two places
-  // _createPolylines(Position start, Position destination) async {
-  //   polylinePoints = PolylinePoints();
-  //   PolylineResult result = await polylinePoints.getRouteBetweenCoordinates(
-  //     Secrets.API_KEY, // Google Maps API Key
-  //     PointLatLng(start.latitude, start.longitude),
-  //     PointLatLng(destination.latitude, destination.longitude),
-  //     travelMode: TravelMode.transit,
-  //   );
-  //
-  //   if (result.points.isNotEmpty) {
-  //     result.points.forEach((PointLatLng point) {
-  //       polylineCoordinates.add(LatLng(point.latitude, point.longitude));
-  //     });
-  //   }
-  //
-  //   PolylineId id = PolylineId('poly');
-  //   Polyline polyline = Polyline(
-  //     polylineId: id,
-  //     color: Colors.red,
-  //     points: polylineCoordinates,
-  //     width: 3,
-  //   );
-  //   polylines[id] = polyline;
-  // }
+  _createPolylines(Location start, Location destination) async {
+    polylinePoints = PolylinePoints();
+    PolylineResult result = await polylinePoints!.getRouteBetweenCoordinates(
+      "AIzaSyDDAZrIoGmEeEQA-1BDvW_D6O7Gr0i_I_8", // Google Maps API Key
+      PointLatLng(start.latitude, start.longitude),
+      PointLatLng(destination.latitude, destination.longitude),
+      travelMode: TravelMode.transit,
+    );
+
+    if (result.points.isNotEmpty) {
+      result.points.forEach((PointLatLng point) {
+        polylineCoordinates.add(LatLng(point.latitude, point.longitude));
+      });
+    }
+
+    PolylineId id = PolylineId('poly');
+    Polyline polyline = Polyline(
+      polylineId: id,
+      color: Colors.red,
+      points: polylineCoordinates,
+      width: 3,
+    );
+    polylines[id] = polyline;
+  }
 
   @override
   void initState() {
@@ -317,14 +300,14 @@ class _MyHomePageState extends State<MyHomePage> {
           children: <Widget>[
             // Map View
             GoogleMap(
-              // markers: markers != null ? Set<Marker>.from(markers) : null,
+              markers: markers,
               initialCameraPosition: _initialLocation,
               myLocationEnabled: true,
               myLocationButtonEnabled: false,
               mapType: MapType.normal,
               zoomGesturesEnabled: true,
               zoomControlsEnabled: false,
-              polylines: Set<Polyline>.of(polylines.values),
+              // polylines: Set<Polyline>.of(polylines.values),
               onMapCreated: (GoogleMapController controller) {
                 mapController = controller;
               },
@@ -445,8 +428,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           ),
                           const SizedBox(height: 5),
                           ElevatedButton(
-                            onPressed: (_startAddress != '' &&
-                                    _destinationAddress != '')
+                            onPressed: (_startAddress != '')
                                 ? () async {
                                     setState(() {
                                       if (markers.isNotEmpty) markers.clear();
@@ -459,23 +441,25 @@ class _MyHomePageState extends State<MyHomePage> {
                                       _placeDistance = "";
                                     });
 
-                                    // _calculateDistance().then((isCalculated) {
-                                    //   if (isCalculated) {
-                                    //     _scaffoldKey.currentState.showSnackBar(
-                                    //       SnackBar(
-                                    //         content: Text(
-                                    //             'Distance Calculated Sucessfully'),
-                                    //       ),
-                                    //     );
-                                    //   } else {
-                                    //     _scaffoldKey.currentState.showSnackBar(
-                                    //       SnackBar(
-                                    //         content: Text(
-                                    //             'Error Calculating Distance'),
-                                    //       ),
-                                    //     );
-                                    //   }
-                                    // });
+                                    _calculateDistance().then((isCalculated) {
+                                      if (isCalculated) {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                                'Distance Calculated Sucessfully'),
+                                          ),
+                                        );
+                                      } else {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                                'Error Calculating Distance'),
+                                          ),
+                                        );
+                                      }
+                                    });
                                   }
                                 : null,
                             child: Padding(
