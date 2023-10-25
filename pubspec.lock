@@ -65,6 +65,14 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "1.0.6"
+  dio:
+    dependency: transitive
+    description:
+      name: dio
+      sha256: "417e2a6f9d83ab396ec38ff4ea5da6c254da71e4db765ad737a42af6930140b7"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "5.3.3"
   fake_async:
     dependency: transitive
     description:
@@ -73,6 +81,14 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "1.3.1"
+  fixnum:
+    dependency: transitive
+    description:
+      name: fixnum
+      sha256: "25517a4deb0c03aa0f32fd12db525856438902d9c16536311e76cdc57b31d7d1"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "1.1.0"
   flutter:
     dependency: "direct main"
     description: flutter
@@ -264,6 +280,14 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "4.0.2"
+  intl:
+    dependency: transitive
+    description:
+      name: intl
+      sha256: "3bc132a9dbce73a7e4a21a17d06e1878839ffbf975568bc875c60537824b0c4d"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "0.18.1"
   js:
     dependency: transitive
     description:
@@ -328,6 +352,14 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.1.6"
+  routing_client_dart:
+    dependency: "direct main"
+    description:
+      name: routing_client_dart
+      sha256: cc8d908cd100ff4b0c24c8800484247c56603bc1ce7007d3a39dfd47b01a959a
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "0.5.2"
   sanitize_html:
     dependency: transitive
     description:
