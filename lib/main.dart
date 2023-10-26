@@ -62,7 +62,6 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Set<Marker> markers = {};
 
-  PolylinePoints? polylinePoints;
   Map<PolylineId, Polyline> polylines = {};
   List<LatLng> polylineCoordinates = [];
 
@@ -229,7 +228,7 @@ class _MyHomePageState extends State<MyHomePage> {
         _secondPosition!.latitude,
         _secondPosition!.longitude,
       );
-
+      /// Get a list of [polylineCoordinates]
       await _createPolyline(
         _firstPosition!,
         _secondPosition!,
@@ -237,8 +236,6 @@ class _MyHomePageState extends State<MyHomePage> {
 
       double totalDistance = 0.0;
 
-      // Calculating the total distance by adding the distance
-      // between small segments
       for (int i = 0; i < polylineCoordinates.length - 1; i++) {
         totalDistance += _coordinateDistance(
           polylineCoordinates[i].latitude,
@@ -257,18 +254,13 @@ class _MyHomePageState extends State<MyHomePage> {
       print(e);
       return false;
     }
-    return false;
   }
 
-  // Formula for calculating distance between two coordinates
-  // https://stackoverflow.com/a/54138876/11910277
-  double _coordinateDistance(lat1, lon1, lat2, lon2) {
+  double _coordinateDistance(lat1, lng1, lat2, lng2) {
     var p = 0.017453292519943295;
-    var c = cos;
-    var a = 0.5 -
-        c((lat2 - lat1) * p) / 2 +
-        c(lat1 * p) * c(lat2 * p) * (1 - c((lon2 - lon1) * p)) / 2;
-    return 12742 * asin(sqrt(a));
+    var hav = pow(sin((lat2 - lat1) * p / 2), 2) + cos(lat1 * p) * cos(lat2 * p) * pow(sin((lng2 - lng1) * p / 2), 2);
+    var theta = 2 * asin(sqrt(hav));
+    return 6371 * theta;
   }
 
   List<PointLatLng> _decodeEncodedPolyline(String encoded) {
@@ -372,21 +364,21 @@ class _MyHomePageState extends State<MyHomePage> {
 
   GoogleMap _buildMap() {
     return GoogleMap(
-            markers: markers,
-            initialCameraPosition: _initialLocation,
-            myLocationEnabled: true,
-            myLocationButtonEnabled: false,
-            mapType: MapType.normal,
-            zoomGesturesEnabled: true,
-            zoomControlsEnabled: false,
-            polylines: Set<Polyline>.of(polylines.values),
-            onMapCreated: (GoogleMapController controller) {
-              mapController = controller;
-            },
-            onTap: (position) {
-              _addMarker(position);
-            },
-          );
+      markers: markers,
+      initialCameraPosition: _initialLocation,
+      myLocationEnabled: true,
+      myLocationButtonEnabled: false,
+      mapType: MapType.normal,
+      zoomGesturesEnabled: true,
+      zoomControlsEnabled: false,
+      polylines: Set<Polyline>.of(polylines.values),
+      onMapCreated: (GoogleMapController controller) {
+        mapController = controller;
+      },
+      onTap: (position) {
+        _addMarker(position);
+      },
+    );
   }
 
   SafeArea _buildBtnCurrentLocation() {
